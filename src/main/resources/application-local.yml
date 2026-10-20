@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: All in One Manager
+  datasource:
+    url: jdbc:mysql://localhost:3306/all_in_one_manager_local?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: Shareef@786
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none   # options: none, validate, update, create, create-drop
+    show-sql: true       # logs SQL queries in console
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  main:
+    allow-bean-definition-overriding: true
+
+server:
+  port: 8087
+  servlet:
+    context-path: /aiom
+
+logging:
+  level:
+    root: INFO
+    com.sms.ssgs: INFO
+    org.springframework: INFO
+    org.hibernate: INFO
