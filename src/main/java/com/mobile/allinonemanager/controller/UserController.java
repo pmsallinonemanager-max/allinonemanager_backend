@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mobile.allinonemanager.request.dto.LoginRequest;
 import com.mobile.allinonemanager.request.dto.SignUpRequest;
+import com.mobile.allinonemanager.response.dto.LoginResponse;
 import com.mobile.allinonemanager.service.UserService;
 
 @RestController
@@ -20,7 +21,7 @@ public class UserController {
 	
 	@PostMapping("/login")
 	public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
-		String response = userService.loginUser(loginRequest);
+		LoginResponse response = userService.loginUser(loginRequest);
 		return ResponseEntity.ok(response);
 	}
 	
