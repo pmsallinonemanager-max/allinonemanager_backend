@@ -6,6 +6,8 @@ import com.mobile.allinonemanager.entity.CreditCardInfo;
 import com.mobile.allinonemanager.request.dto.AddCreditCardRequest;
 import com.mobile.allinonemanager.request.dto.AddDueDetailsRequest;
 import com.mobile.allinonemanager.request.dto.UpdateCreditCardRequest;
+import com.mobile.allinonemanager.request.dto.UpdateDueDetailsRequest;
+import com.mobile.allinonemanager.request.dto.UpdateDueStatusRequest;
 import com.mobile.allinonemanager.response.dto.DueDetailsResponse;
 
 public interface CreditCardService {
@@ -17,6 +19,10 @@ public interface CreditCardService {
 	String updateCreditCard(UpdateCreditCardRequest updateCreditCardRequest);
 
 	String addDueDetails(AddDueDetailsRequest addDueDetailsRequest);
+
+	String updateDueDetails(UpdateDueDetailsRequest updateDueDetailsRequest);
+
+	String updateDueStatus(UpdateDueStatusRequest updateDueStatusRequest);
 
 	List<DueDetailsResponse> getDueDetails(Integer ccId);
 

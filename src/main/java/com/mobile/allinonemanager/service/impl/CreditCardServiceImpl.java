@@ -18,6 +18,8 @@ import com.mobile.allinonemanager.repo.UserRepo;
 import com.mobile.allinonemanager.request.dto.AddCreditCardRequest;
 import com.mobile.allinonemanager.request.dto.AddDueDetailsRequest;
 import com.mobile.allinonemanager.request.dto.UpdateCreditCardRequest;
+import com.mobile.allinonemanager.request.dto.UpdateDueDetailsRequest;
+import com.mobile.allinonemanager.request.dto.UpdateDueStatusRequest;
 import com.mobile.allinonemanager.response.dto.DueDetailsResponse;
 import com.mobile.allinonemanager.service.CreditCardService;
 
@@ -100,6 +102,42 @@ public class CreditCardServiceImpl implements CreditCardService {
 		dueDetails.setIsPaid(Boolean.TRUE.equals(addDueDetailsRequest.getIsPaid()));
 		ccDueDetailsRepo.save(dueDetails);
 		return "Due details added successfully.";
+	}
+
+	@Override
+	public String updateDueDetails(UpdateDueDetailsRequest updateDueDetailsRequest) {
+		if(updateDueDetailsRequest.getCcDueId() == null || updateDueDetailsRequest.getCcId() == null) {
+			return "Due details not found.";
+		}
+		Optional<CcDueDetailsInfo> existingDue = ccDueDetailsRepo.findById(updateDueDetailsRequest.getCcDueId());
+		// The due entry must belong to the card sent in the request
+		if(existingDue.isEmpty() || !updateDueDetailsRequest.getCcId().equals(existingDue.get().getCcId())) {
+			return "Due details not found.";
+		}
+		// Partial update: only fields sent in the request are changed
+		CcDueDetailsInfo dueDetails = existingDue.get();
+		Optional.ofNullable(updateDueDetailsRequest.getDueAmt()).ifPresent(dueDetails::setDueAmt);
+		Optional.ofNullable(updateDueDetailsRequest.getMinimumDue()).ifPresent(dueDetails::setMinimumDue);
+		Optional.ofNullable(updateDueDetailsRequest.getTotalOutstanding()).ifPresent(dueDetails::setTotalOutstanding);
+		Optional.ofNullable(updateDueDetailsRequest.getStatementDate()).ifPresent(dueDetails::setStatementDate);
+		Optional.ofNullable(updateDueDetailsRequest.getDueDate()).ifPresent(dueDetails::setDueDate);
+		ccDueDetailsRepo.save(dueDetails);
+		return "Due details updated successfully.";
+	}
+
+	@Override
+	public String updateDueStatus(UpdateDueStatusRequest updateDueStatusRequest) {
+		if(updateDueStatusRequest.getCcDueId() == null) {
+			return "Due details not found.";
+		}
+		Optional<CcDueDetailsInfo> existingDue = ccDueDetailsRepo.findById(updateDueStatusRequest.getCcDueId());
+		if(existingDue.isEmpty()) {
+			return "Due details not found.";
+		}
+		CcDueDetailsInfo dueDetails = existingDue.get();
+		dueDetails.setIsPaid(Boolean.TRUE.equals(updateDueStatusRequest.getIsPaid()));
+		ccDueDetailsRepo.save(dueDetails);
+		return "Due status updated successfully.";
 	}
 
 	@Override

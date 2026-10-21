@@ -16,6 +16,8 @@ import com.mobile.allinonemanager.entity.CreditCardInfo;
 import com.mobile.allinonemanager.request.dto.AddCreditCardRequest;
 import com.mobile.allinonemanager.request.dto.AddDueDetailsRequest;
 import com.mobile.allinonemanager.request.dto.UpdateCreditCardRequest;
+import com.mobile.allinonemanager.request.dto.UpdateDueDetailsRequest;
+import com.mobile.allinonemanager.request.dto.UpdateDueStatusRequest;
 import com.mobile.allinonemanager.response.dto.DueDetailsResponse;
 import com.mobile.allinonemanager.service.CreditCardService;
 
@@ -47,6 +49,18 @@ public class CreditCardController {
 	@PostMapping("/due/add")
 	public ResponseEntity<?> addDueDetails(@RequestBody AddDueDetailsRequest addDueDetailsRequest) {
 		String response = creditCardService.addDueDetails(addDueDetailsRequest);
+		return ResponseEntity.ok(response);
+	}
+
+	@PutMapping("/due/update")
+	public ResponseEntity<?> updateDueDetails(@RequestBody UpdateDueDetailsRequest updateDueDetailsRequest) {
+		String response = creditCardService.updateDueDetails(updateDueDetailsRequest);
+		return ResponseEntity.ok(response);
+	}
+
+	@PutMapping("/due/status")
+	public ResponseEntity<?> updateDueStatus(@RequestBody UpdateDueStatusRequest updateDueStatusRequest) {
+		String response = creditCardService.updateDueStatus(updateDueStatusRequest);
 		return ResponseEntity.ok(response);
 	}
 
