@@ -4,18 +4,21 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.mobile.allinonemanager.entity.CreditCardInfo;
 import com.mobile.allinonemanager.request.dto.AddCreditCardRequest;
 import com.mobile.allinonemanager.request.dto.AddDueDetailsRequest;
 import com.mobile.allinonemanager.request.dto.UpdateCreditCardRequest;
+import com.mobile.allinonemanager.request.dto.UpdateCreditCardStatusRequest;
 import com.mobile.allinonemanager.request.dto.UpdateDueDetailsRequest;
 import com.mobile.allinonemanager.request.dto.UpdateDueStatusRequest;
 import com.mobile.allinonemanager.response.dto.DueDetailsResponse;
@@ -46,6 +49,18 @@ public class CreditCardController {
 		return ResponseEntity.ok(response);
 	}
 
+	@PutMapping("/status")
+	public ResponseEntity<?> updateCreditCardStatus(@RequestBody UpdateCreditCardStatusRequest updateCreditCardStatusRequest) {
+		String response = creditCardService.updateCreditCardStatus(updateCreditCardStatusRequest);
+		return ResponseEntity.ok(response);
+	}
+
+	@DeleteMapping("/{ccId}")
+	public ResponseEntity<?> deleteCreditCard(@PathVariable Integer ccId) {
+		String response = creditCardService.deleteCreditCard(ccId);
+		return ResponseEntity.ok(response);
+	}
+
 	@PostMapping("/due/add")
 	public ResponseEntity<?> addDueDetails(@RequestBody AddDueDetailsRequest addDueDetailsRequest) {
 		String response = creditCardService.addDueDetails(addDueDetailsRequest);
@@ -61,6 +76,12 @@ public class CreditCardController {
 	@PutMapping("/due/status")
 	public ResponseEntity<?> updateDueStatus(@RequestBody UpdateDueStatusRequest updateDueStatusRequest) {
 		String response = creditCardService.updateDueStatus(updateDueStatusRequest);
+		return ResponseEntity.ok(response);
+	}
+
+	@DeleteMapping("/due/{ccDueId}")
+	public ResponseEntity<?> deleteDueDetails(@PathVariable Integer ccDueId, @RequestParam Integer ccId) {
+		String response = creditCardService.deleteDueDetails(ccDueId, ccId);
 		return ResponseEntity.ok(response);
 	}
 

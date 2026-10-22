@@ -1,4 +1,6 @@
 package com.mobile.allinonemanager.service.impl;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.mobile.allinonemanager.entity.CcDueDetailsInfo;
 import com.mobile.allinonemanager.entity.CreditCardInfo;
@@ -18,6 +21,7 @@ import com.mobile.allinonemanager.repo.UserRepo;
 import com.mobile.allinonemanager.request.dto.AddCreditCardRequest;
 import com.mobile.allinonemanager.request.dto.AddDueDetailsRequest;
 import com.mobile.allinonemanager.request.dto.UpdateCreditCardRequest;
+import com.mobile.allinonemanager.request.dto.UpdateCreditCardStatusRequest;
 import com.mobile.allinonemanager.request.dto.UpdateDueDetailsRequest;
 import com.mobile.allinonemanager.request.dto.UpdateDueStatusRequest;
 import com.mobile.allinonemanager.response.dto.DueDetailsResponse;
@@ -45,6 +49,12 @@ public class CreditCardServiceImpl implements CreditCardService {
 		if(addCreditCardRequest.getUserId() == null || !userRepo.existsById(addCreditCardRequest.getUserId())) {
 			return "User not found.";
 		}
+		Optional<CreditCardInfo> sameCard = findSameCard(addCreditCardRequest.getUserId(), addCreditCardRequest.getCcNumber(), null);
+		if(sameCard.isPresent()) {
+			return Boolean.FALSE.equals(sameCard.get().getIsActive())
+					? "This card is already added (inactive). Reactivate it instead."
+					: "Credit card already added.";
+		}
 		CreditCardInfo creditCard = new CreditCardInfo();
 		creditCard.setUserId(addCreditCardRequest.getUserId());
 		creditCard.setCcNumber(addCreditCardRequest.getCcNumber());
@@ -57,6 +67,7 @@ public class CreditCardServiceImpl implements CreditCardService {
 		creditCard.setStatementDate(addCreditCardRequest.getStatementDate());
 		creditCard.setDueDate(addCreditCardRequest.getDueDate());
 		creditCard.setCcLimit(addCreditCardRequest.getCcLimit());
+		creditCard.setIsActive(true);
 		creditCardRepo.save(creditCard);
 		return "Credit card added successfully.";
 	}
@@ -70,6 +81,10 @@ public class CreditCardServiceImpl implements CreditCardService {
 		// Only the owner of the card may update it
 		if(existingCard.isEmpty() || !updateCreditCardRequest.getUserId().equals(existingCard.get().getUserId())) {
 			return "Credit card not found.";
+		}
+		if(updateCreditCardRequest.getCcNumber() != null
+				&& findSameCard(updateCreditCardRequest.getUserId(), updateCreditCardRequest.getCcNumber(), updateCreditCardRequest.getCcId()).isPresent()) {
+			return "Another card with this number is already added.";
 		}
 		// Partial update: only fields sent in the request are changed
 		CreditCardInfo creditCard = existingCard.get();
@@ -88,9 +103,51 @@ public class CreditCardServiceImpl implements CreditCardService {
 	}
 
 	@Override
-	public String addDueDetails(AddDueDetailsRequest addDueDetailsRequest) {
-		if(addDueDetailsRequest.getCcId() == null || !creditCardRepo.existsById(addDueDetailsRequest.getCcId())) {
+	public String updateCreditCardStatus(UpdateCreditCardStatusRequest updateCreditCardStatusRequest) {
+		if(updateCreditCardStatusRequest.getCcId() == null) {
 			return "Credit card not found.";
+		}
+		Optional<CreditCardInfo> existingCard = creditCardRepo.findById(updateCreditCardStatusRequest.getCcId());
+		if(existingCard.isEmpty()) {
+			return "Credit card not found.";
+		}
+		CreditCardInfo creditCard = existingCard.get();
+		creditCard.setIsActive(Boolean.TRUE.equals(updateCreditCardStatusRequest.getIsActive()));
+		creditCardRepo.save(creditCard);
+		return "Credit card status updated successfully.";
+	}
+
+	// Dues reference the card, so they are removed first; both deletes roll back together on failure
+	@Override
+	@Transactional
+	public String deleteCreditCard(Integer ccId) {
+		if(ccId == null || !creditCardRepo.existsById(ccId)) {
+			return "Credit card not found.";
+		}
+		ccDueDetailsRepo.deleteByCcId(ccId);
+		creditCardRepo.deleteById(ccId);
+		return "Credit card deleted successfully.";
+	}
+
+	@Override
+	public String addDueDetails(AddDueDetailsRequest addDueDetailsRequest) {
+		if(addDueDetailsRequest.getCcId() == null) {
+			return "Credit card not found.";
+		}
+		Optional<CreditCardInfo> creditCard = creditCardRepo.findById(addDueDetailsRequest.getCcId());
+		if(creditCard.isEmpty()) {
+			return "Credit card not found.";
+		}
+		if(Boolean.FALSE.equals(creditCard.get().getIsActive())) {
+			return "Credit card is inactive.";
+		}
+		// Only one due per card per statement month
+		LocalDate statementDate = addDueDetailsRequest.getStatementDate();
+		if(statementDate != null) {
+			YearMonth month = YearMonth.from(statementDate);
+			if(ccDueDetailsRepo.existsByCcIdAndStatementDateBetween(addDueDetailsRequest.getCcId(), month.atDay(1), month.atEndOfMonth())) {
+				return "Due details for this month already added.";
+			}
 		}
 		CcDueDetailsInfo dueDetails = new CcDueDetailsInfo();
 		dueDetails.setCcId(addDueDetailsRequest.getCcId());
@@ -113,6 +170,14 @@ public class CreditCardServiceImpl implements CreditCardService {
 		// The due entry must belong to the card sent in the request
 		if(existingDue.isEmpty() || !updateDueDetailsRequest.getCcId().equals(existingDue.get().getCcId())) {
 			return "Due details not found.";
+		}
+		LocalDate statementDate = updateDueDetailsRequest.getStatementDate();
+		if(statementDate != null) {
+			YearMonth month = YearMonth.from(statementDate);
+			if(ccDueDetailsRepo.existsByCcIdAndStatementDateBetweenAndCcDueIdNot(updateDueDetailsRequest.getCcId(),
+					month.atDay(1), month.atEndOfMonth(), updateDueDetailsRequest.getCcDueId())) {
+				return "Due details for this month already added.";
+			}
 		}
 		// Partial update: only fields sent in the request are changed
 		CcDueDetailsInfo dueDetails = existingDue.get();
@@ -138,6 +203,20 @@ public class CreditCardServiceImpl implements CreditCardService {
 		dueDetails.setIsPaid(Boolean.TRUE.equals(updateDueStatusRequest.getIsPaid()));
 		ccDueDetailsRepo.save(dueDetails);
 		return "Due status updated successfully.";
+	}
+
+	@Override
+	public String deleteDueDetails(Integer ccDueId, Integer ccId) {
+		if(ccDueId == null || ccId == null) {
+			return "Due details not found.";
+		}
+		Optional<CcDueDetailsInfo> existingDue = ccDueDetailsRepo.findById(ccDueId);
+		// The due entry must belong to the card sent in the request
+		if(existingDue.isEmpty() || !ccId.equals(existingDue.get().getCcId())) {
+			return "Due details not found.";
+		}
+		ccDueDetailsRepo.deleteById(ccDueId);
+		return "Due details deleted successfully.";
 	}
 
 	@Override
@@ -177,6 +256,21 @@ public class CreditCardServiceImpl implements CreditCardService {
 		response.setDueDate(dueDetails.getDueDate());
 		response.setIsPaid(Boolean.TRUE.equals(dueDetails.getIsPaid()));
 		return response;
+	}
+
+	// Card numbers are compared on digits only, so "4111 1111" and "4111-1111" match
+	private Optional<CreditCardInfo> findSameCard(Integer userId, String ccNumber, Integer excludeCcId) {
+		if(ccNumber == null) {
+			return Optional.empty();
+		}
+		String digits = ccNumber.replaceAll("\\D", "");
+		if(digits.isEmpty()) {
+			return Optional.empty();
+		}
+		return creditCardRepo.findByUserId(userId).stream()
+				.filter(card -> !card.getCcId().equals(excludeCcId))
+				.filter(card -> card.getCcNumber() != null && digits.equals(card.getCcNumber().replaceAll("\\D", "")))
+				.findFirst();
 	}
 
 	// Never expose the full card number; only the last 4 digits
