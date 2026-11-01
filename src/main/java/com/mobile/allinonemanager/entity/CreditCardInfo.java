@@ -50,4 +50,7 @@ public class CreditCardInfo {
 	@Column(name = "user_id")
 	private Integer userId;
 
+	@Column(name = "is_active")
+	private Boolean isActive;
+
 }
