@@ -1,0 +1,46 @@
+server:
+  port: 8087
+  address: 127.0.0.1          # listen only on this laptop; the tunnel connects locally
+  servlet:
+    context-path: /aiom
+  forward-headers-strategy: framework   # trust X-Forwarded-* from the tunnel/proxy
+  compression:
+    enabled: true
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/all_in_one_manager?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Kolkata
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 2
+      connection-timeout: 10000
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    show-sql: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  file:
+    name: C:/aiom/logs/aiom.log
+  logback:
+    rollingpolicy:
+      max-file-size: 20MB
+      max-history: 14
+      total-size-cap: 300MB
